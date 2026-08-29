@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Quotex Demo Trading</title>
+    <!-- Lightweight Charts for candlestick -->
+    <script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+    <style>
+        :root {
+            --bg: #0d1117;
+            --card: #161b22;
+            --border: #30363d;
+            --green: #2ecc71;
+            --red: #e74c3c;
+            --text: #e6edf3;
+            --text-muted: #8b949e;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+        }
+        .auth-container, .app-container {
+            width: 100%;
+            max-width: 400px;
+            background: var(--card);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            padding: 20px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+        }
+        .app-container {
+            max-width: 1000px;
+            width: 100%;
+            padding: 20px;
+        }
+        h1, h2, h3 {
+            text-align: center;
+            margin-bottom: 16px;
+            color: var(--text);
+        }
+        .tabs {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .tab-btn {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        .tab-btn.active {
+            background: var(--green);
+            color: #fff;
+            border-color: var(--green);
+        }
+        input, select {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 12px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 16px;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background: var(--green);
+            border: none;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .error {
+            color: var(--red);
+            text-align: center;
+            font-size: 14px;
+            margin-bottom: 10px;
+            min-height: 20px;
+        }
+        .balance {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+            margin-bottom: 16px;
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--green);
+        }
+        .toolbar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+        .toolbar select, .toolbar button {
+            flex: 1;
+            min-width: 80px;
+            padding: 10px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 14px;
+        }
+        .chart-container {
+            height: 300px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+        .trade-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .trade-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .trade-row label {
+            min-width: 70px;
+        }
+        .trade-row select, .trade-row input {
+            flex: 1;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px;
+            color: var(--text);
+        }
+        .trade-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        .up-btn {
+            background: var(--green);
+            flex: 1;
+            padding: 14px;
+            font-size: 18px;
+            font-weight: 700;
+        }
+        .down-btn {
+            background: var(--red);
+            flex: 1;
+            padding: 14px;
+            font-size: 18px;
+            font-weight: 700;
+        }
+        .history {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .history h3 {
+            margin-bottom: 10px;
+        }
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px;
+            border-bottom: 1px solid var(--border);
+            font-size: 14px;
+        }
+        .win { color: var(--green); }
+        .loss { color: var(--red); }
+        .refresh-btn {
+            background: #f39c12;
+            margin-top: 8px;
+        }
+        .logout-btn {
+            background: #c0392b;
+            margin-top: 10px;
+        }
+        @media (min-width: 768px) {
+            .app-container {
+                display: grid;
+                grid-template-columns: 1fr 300px;
+                gap: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Authentication Page -->
+    <div id="authPage" class="auth-container">
+        <h2>Quotex Demo</h2>
+        <div class="tabs">
+            <button class="tab-btn active" id="loginTab" onclick="switchAuth('login')">Login</button>
+            <button class="tab-btn" id="signupTab" onclick="switchAuth('signup')">Sign Up</button>
+        </div>
+        <div id="loginForm">
+            <input type="text" id="loginUsername" placeholder="Username">
+            <input type="password" id="loginPassword" placeholder="Password">
+            <div class="error" id="loginError"></div>
+            <button onclick="login()">Login</button>
+        </div>
+        <div id="signupForm" style="display: none;">
+            <input type="text" id="signupUsername" placeholder="Username">
+            <input type="password" id="signupPassword" placeholder="Password">
+            <div class="error" id="signupError"></div>
+            <button onclick="signup()">Sign Up</button>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="appPage" class="app-container" style="display: none;">
+        <div class="left-panel">
+            <div class="balance" id="balanceDisplay">$10,000.00</div>
+            <button class="refresh-btn" onclick="resetBalance()">Reset Demo Balance</button>
+            <div class="toolbar">
+                <select id="assetSelect">
+                    <option value="EUR/USD">EUR/USD</option>
+                    <option value="GBP/USD">GBP/USD</option>
+                    <option value="BTC/USD">BTC/USD</option>
+                    <option value="ETH/USD">ETH/USD</option>
+                </select>
+                <select id="timeframeSelect">
+                    <option value="1m">1 min</option>
+                    <option value="5m">5 min</option>
+                    <option value="15m">15 min</option>
+                </select>
+            </div>
+            <div class="chart-container" id="chartContainer"></div>
+            <div class="trade-panel">
+                <div class="trade-row">
+                    <label>Amount</label>
+                    <input type="number" id="tradeAmount" value="100" min="1" step="1">
+                </div>
+                <div class="trade-row">
+                    <label>Duration</label>
+                    <select id="durationSelect">
+                        <option value="5">5 sec</option>
+                        <option value="10">10 sec</option>
+                        <option value="15">15 sec</option>
+                        <option value="30">30 sec</option>
+                    </select>
+                </div>
+                <div class="trade-buttons">
+                    <button class="up-btn" onclick="placeTrade('up')">▲ UP</button>
+                    <button class="down-btn" onclick="placeTrade('down')">▼ DOWN</button>
+                </div>
+                <div id="tradeStatus" style="text-align:center; min-height:24px; font-weight:600;"></div>
+            </div>
+        </div>
+        <div class="right-panel">
+            <div class="history">
+                <h3>Trade History</h3>
+                <div id="historyList"></div>
+            </div>
+            <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        let currentUser = null;
+        let balance = 10000;
+        let chart = null;
+        let candleSeries = null;
+        let currentCandles = [];
+        let activeTrade = null;
+        let tradeTimer = null;
+        let tradeStartPrice = 0;
+        let trades = JSON.parse(localStorage.getItem('trades')) || [];
+
+        // Auth functions
+        function switchAuth(mode) {
+            if (mode === 'login') {
+                document.getElementById('loginForm').style.display = 'block';
+                document.getElementById('signupForm').style.display = 'none';
+                document.getElementById('loginTab').classList.add('active');
+                document.getElementById('signupTab').classList.remove('active');
+            } else {
+                document.getElementById('loginForm').style.display = 'none';
+                document.getElementById('signupForm').style.display = 'block';
+                document.getElementById('signupTab').classList.add('active');
+                document.getElementById('loginTab').classList.remove('active');
+            }
+        }
+
+        function signup() {
+            const username = document.getElementById('signupUsername').value.trim();
+            const password = document.getElementById('signupPassword').value;
+            if (!username || !password) {
+                document.getElementById('signupError').textContent = 'Please fill all fields';
+                return;
+            }
+            const users = JSON.parse(localStorage.getItem('users')) || [];
+            if (users.find(u => u.username === username)) {
+                document.getElementById('signupError').textContent = 'Username already exists';
+                return;
+            }
+            users.push({ username, password });
+            localStorage.setItem('users', JSON.stringify(users));
+            document.getElementById('signupError').textContent = '';
+            alert('Account created! Please login.');
+            switchAuth('login');
+            document.getElementById('loginUsername').value = username;
+        }
+
+        function login() {
+            const username = document.getElementById('loginUsername').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            const users = JSON.parse(localStorage.getItem('users')) || [];
+            const user = users.find(u => u.username === username && u.password === password);
+            if (!user) {
+                document.getElementById('loginError').textContent = 'Invalid username or password';
+                return;
+            }
+            currentUser = user;
+            document.getElementById('authPage').style.display = 'none';
+            document.getElementById('appPage').style.display = 'block';
+            resetBalance();
+            initChart();
+            updateHistory();
+            // Simulate live price updates
+            setInterval(generateRandomCandle, 2000);
+        }
+
+        function logout() {
+            currentUser = null;
+            if (tradeTimer) clearInterval(tradeTimer);
+            document.getElementById('authPage').style.display = 'block';
+            document.getElementById('appPage').style.display = 'none';
+        }
+
+        // Balance
+        function resetBalance() {
+            balance = 10000;
+            updateBalanceDisplay();
+        }
+        function updateBalanceDisplay() {
+            document.getElementById('balanceDisplay').textContent = '$' + balance.toFixed(2);
+        }
+
+        // Chart setup
+        function initChart() {
+            const container = document.getElementById('chartContainer');
+            container.innerHTML = '';
+            chart = LightweightCharts.createChart(container, {
+                width: container.clientWidth,
+                height: 300,
+                layout: { background: { color: '#0d1117' }, textColor: '#e6edf3' },
+                grid: { vertLines: { color: '#30363d' }, horzLines: { color: '#30363d' } },
+                crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+            });
+            candleSeries = chart.addCandlestickSeries({
+                upColor: '#2ecc71',
+                downColor: '#e74c3c',
+                borderVisible: false,
+                wickUpColor: '#2ecc71',
+                wickDownColor: '#e74c3c',
+            });
+            currentCandles = generateInitialCandles(50);
+            candleSeries.setData(currentCandles);
+            chart.timeScale().fitContent();
+        }
+
+        function generateInitialCandles(count) {
+            const candles = [];
+            let time = Math.floor(Date.now() / 1000) - count * 60;
+            let price = 100;
+            for (let i = 0; i < count; i++) {
+                const open = price;
+                const close = open + (Math.random() - 0.5) * 2;
+                const high = Math.max(open, close) + Math.random() * 0.5;
+                const low = Math.min(open, close) - Math.random() * 0.5;
+                candles.push({ time, open, high, low, close });
+                price = close;
+                time += 60;
+            }
+            return candles;
+        }
+
+        function generateRandomCandle() {
+            if (!currentUser) return;
+            const last = currentCandles[currentCandles.length - 1];
+            const open = last.close;
+            const close = open + (Math.random() - 0.5) * 2;
+            const high = Math.max(open, close) + Math.random() * 0.4;
+            const low = Math.min(open, close) - Math.random() * 0.4;
+            const newCandle = { time: last.time + 60, open, high, low, close };
+            currentCandles.push(newCandle);
+            candleSeries.update(newCandle);
+            if (activeTrade) {
+                checkTradeOutcome();
+            }
+        }
+
+        // Trade
+        function placeTrade(direction) {
+            if (!currentUser) return;
+            if (activeTrade) {
+                document.getElementById('tradeStatus').textContent = 'Trade already active!';
+                return;
+            }
+            const amount = parseFloat(document.getElementById('tradeAmount').value);
+            if (isNaN(amount) || amount <= 0 || amount > balance) {
+                alert('Invalid amount');
+                return;
+            }
+            const duration = parseInt(document.getElementById('durationSelect').value);
+            const lastPrice = currentCandles[currentCandles.length - 1].close;
+            tradeStartPrice = lastPrice;
+            activeTrade = { direction, amount, duration, startPrice: lastPrice, startTime: Date.now() };
+            balance -= amount;
+            updateBalanceDisplay();
+            document.getElementById('tradeStatus').textContent = `Trade active (${direction.toUpperCase()}) - ${duration}s`;
+            tradeTimer = setTimeout(() => {
+                finishTrade(activeTrade);
+            }, duration * 1000);
+        }
+
+        function finishTrade(trade) {
+            const lastPrice = currentCandles[currentCandles.length - 1].close;
+            const win = (trade.direction === 'up' && lastPrice > trade.startPrice) ||
+                        (trade.direction === 'down' && lastPrice < trade.startPrice);
+            const profit = win ? trade.amount * 0.8 : -trade.amount;
+            balance += (trade.amount + profit);
+            updateBalanceDisplay();
+            const resultText = win ? `+$${profit.toFixed(2)}` : `-$${Math.abs(profit).toFixed(2)}`;
+            document.getElementById('tradeStatus').textContent = win ? 'WIN ' + resultText : 'LOSS ' + resultText;
+            trades.push({
+                user: currentUser.username,
+                asset: document.getElementById('assetSelect').value,
+                direction: trade.direction,
+                amount: trade.amount,
+                profit,
+                time: new Date().toLocaleString()
+            });
+            localStorage.setItem('trades', JSON.stringify(trades));
+            updateHistory();
+            activeTrade = null;
+            clearTimeout(tradeTimer);
+        }
+
+        function checkTradeOutcome() {
+            // Placeholder for real-time update; actual outcome checked by timer
+            const lastPrice = currentCandles[currentCandles.length - 1].close;
+            if (activeTrade) {
+                const win = (activeTrade.direction === 'up' && lastPrice > activeTrade.startPrice) ||
+                            (activeTrade.direction === 'down' && lastPrice < activeTrade.startPrice);
+                // If price moves unfavorably, could optionally close early, but we keep simple
+            }
+        }
+
+        function updateHistory() {
+            const list = document.getElementById('historyList');
+            list.innerHTML = '';
+            const userTrades = trades.filter(t => t.user === currentUser?.username);
+            if (userTrades.length === 0) {
+                list.innerHTML = '<div style="text-align:center; color:#8b949e;">No trades yet</div>';
+                return;
+            }
+            userTrades.slice(-50).reverse().forEach(t => {
+                const div = document.createElement('div');
+                div.className = 'history-item';
+                div.innerHTML = `<span>${t.asset} ${t.direction}</span>
+                                <span class="${t.profit >= 0 ? 'win' : 'loss'}">${t.profit >= 0 ? '+' : ''}${t.profit.toFixed(2)}</span>`;
+                list.appendChild(div);
+            });
+        }
+
+        // Window resize for chart
+        window.addEventListener('resize', () => {
+            if (chart && chart.applyOptions) {
+                chart.applyOptions({ width: document.getElementById('chartContainer').clientWidth });
+            }
+        });
+
+        // Initialize
+        document.getElementById('authPage').style.display = 'block';
+        document.getElementById('appPage').style.display = 'none';
+    </script>
+</body>
+              </html>
